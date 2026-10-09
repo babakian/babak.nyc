@@ -51,9 +51,289 @@
     a:focus-visible {
       outline: none;
     }
+
+    body {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: pinch-zoom;
+    }
+
+    #x {
+      --x: 50%;
+      --y: 50%;
+      --r: 0px;
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: "Rubik Mono One", ui-monospace, Menlo, monospace;
+      pointer-events: none;
+      -webkit-clip-path: circle(0 at var(--x) var(--y));
+      clip-path: circle(0 at var(--x) var(--y));
+      transition: clip-path 1.6s cubic-bezier(0.8, 0, 0.2, 1), -webkit-clip-path 1.6s cubic-bezier(0.8, 0, 0.2, 1);
+    }
+
+    #x.open {
+      pointer-events: auto;
+      -webkit-clip-path: circle(var(--r) at var(--x) var(--y));
+      clip-path: circle(var(--r) at var(--x) var(--y));
+    }
+
+    #x .bands {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 150vmax;
+      height: 150vmax;
+      transform: translate(-50%, -50%) rotate(-20deg);
+      font-size: 6vmin;
+      line-height: 1.5;
+    }
+
+    #x .band {
+      overflow: hidden;
+      white-space: pre;
+      background: #000;
+      color: #fff;
+    }
+
+    #x .band:nth-child(even) {
+      background: #fff;
+      color: #000;
+    }
+
+    #x .band > span {
+      display: inline-block;
+      margin-left: calc(var(--u) * -1ch);
+      animation: drift calc(var(--u) * 0.27s) linear infinite;
+      animation-play-state: paused;
+    }
+
+    #x .band:nth-child(even) > span {
+      animation-direction: reverse;
+    }
+
+    #x.open .band > span {
+      animation-play-state: running;
+    }
+
+    #x i {
+      display: inline-block;
+      width: 1ch;
+      height: 0.72em;
+      background: currentColor;
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 21.6 10.3 20C4.2 14.5 0 10.7 0 6.2 0 2.7 2.7 0 6.2 0c2 0 3.9.9 5.8 2.4C13.9.9 15.8 0 17.8 0 21.3 0 24 2.7 24 6.2c0 4.5-4.2 8.3-10.3 13.8z'/%3E%3C/svg%3E") center / contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M12 21.6 10.3 20C4.2 14.5 0 10.7 0 6.2 0 2.7 2.7 0 6.2 0c2 0 3.9.9 5.8 2.4C13.9.9 15.8 0 17.8 0 21.3 0 24 2.7 24 6.2c0 4.5-4.2 8.3-10.3 13.8z'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+
+    #x i.a {
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 10.4h16.5l-5.9-5.9L13.9 2.2 23.7 12l-9.8 9.8-2.3-2.3 5.9-5.9H1z'/%3E%3C/svg%3E");
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M1 10.4h16.5l-5.9-5.9L13.9 2.2 23.7 12l-9.8 9.8-2.3-2.3 5.9-5.9H1z'/%3E%3C/svg%3E");
+    }
+
+    #x .h {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    #x .h > div {
+      position: relative;
+      width: 55vmin;
+    }
+
+    #x .h svg {
+      display: block;
+      width: 100%;
+      height: auto;
+      fill: #e0245e;
+      filter: drop-shadow(0 0 3vmin rgba(0, 0, 0, 0.4));
+    }
+
+    #x .h b {
+      position: absolute;
+      inset: 0 0 14% 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 400;
+      font-size: 22vmin;
+      color: #fff;
+    }
+
+    #x em {
+      font-style: normal;
+      color: #e0245e;
+    }
+
+    @keyframes drift {
+      to { transform: translateX(calc(var(--u) * -1ch)); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #x { transition-duration: 0.4s; }
+      #x .band > span { animation: none; }
+    }
   </style>
 </head>
 <body>
   <a href="/">babak.nyc</a>
+  <div id="x" aria-hidden="true"></div>
+  <script>
+    (() => {
+      const x = document.getElementById("x");
+      let timer = null, sx = 0, sy = 0, swallow = false;
+
+      const K = "8760663bb25fa79f35c2c14fb9c6bcbe444a8c938491cd24fe684a7056c9dbc4";
+      const S = [2026, 7, 9];
+      const q = new URLSearchParams(location.search);
+      const parse = (v) => {
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || "");
+        return m && [+m[1], +m[2], +m[3]];
+      };
+      let fake = null;
+
+      if (q.has("now")) {
+        if (location.hostname !== "babak.nyc") {
+          fake = parse(q.get("now"));
+        } else if (q.has("k") && window.crypto && crypto.subtle) {
+          crypto.subtle.digest("SHA-256", new TextEncoder().encode(q.get("k"))).then((h) => {
+            const hex = [...new Uint8Array(h)].map((n) => n.toString(16).padStart(2, "0")).join("");
+            if (hex === K) fake = parse(q.get("now"));
+          });
+        }
+      }
+
+      const today = () => {
+        if (fake) return fake;
+        const p = {};
+        new Intl.DateTimeFormat("en-US", {
+          timeZone: "America/Los_Angeles", year: "numeric", month: "numeric", day: "numeric",
+        }).formatToParts(new Date()).forEach((t) => { p[t.type] = +t.value; });
+        return [p.year, p.month, p.day];
+      };
+
+      const count = () => {
+        const [y, m, d] = today();
+        return (y - S[0]) * 12 + (m - S[1]) - (d < S[2] ? 1 : 0);
+      };
+
+      const pad = (n) => String(n).padStart(2, "0");
+
+      const build = () => {
+        const [a, b] = atob("QjwzSA==").split("<3");
+        const units = [{ html: a + "<i></i>" + b + "  ", w: a.length + 1 + b.length + 2 }];
+        const n = count();
+        let h = null;
+
+        if (n >= 3) {
+          const t = n + " " + atob("TU9OVEhT");
+          const from = pad(S[1]) + "." + pad(S[2]);
+          const to = pad((S[1] - 1 + n) % 12 + 1) + "." + pad(S[2]);
+          units.push({ html: "<em>" + t + "</em>  ", w: t.length + 2 });
+          units.push({ html: from + " <i class=\"a\"></i> " + to + "  ", w: from.length + 3 + to.length + 2 });
+          h = document.createElement("div");
+          h.className = "h";
+          h.innerHTML = "<div><svg viewBox=\"0 0 24 22\"><path d=\"M12 21.6 10.3 20C4.2 14.5 0 10.7 0 6.2 0 2.7 2.7 0 6.2 0c2 0 3.9.9 5.8 2.4C13.9.9 15.8 0 17.8 0 21.3 0 24 2.7 24 6.2c0 4.5-4.2 8.3-10.3 13.8z\"/></svg><b>" + n + "</b></div>";
+        }
+
+        const px = Math.min(innerWidth, innerHeight) * 0.06 * 1.5;
+        const rows = Math.ceil(1.5 * Math.max(screen.width, screen.height, innerWidth, innerHeight) / px) + 2;
+        const bands = document.createElement("div");
+        bands.className = "bands";
+        for (let i = 0; i < rows; i++) {
+          const u = units[i % units.length];
+          const band = document.createElement("div");
+          const span = document.createElement("span");
+          band.className = "band";
+          band.style.setProperty("--u", u.w);
+          span.innerHTML = u.html.repeat(Math.ceil(500 / u.w));
+          band.append(span);
+          bands.append(band);
+        }
+        x.replaceChildren(bands);
+        if (h) x.append(h);
+      };
+
+      const place = (px, py) => {
+        x.style.setProperty("--x", px + "px");
+        x.style.setProperty("--y", py + "px");
+      };
+
+      const open = () => {
+        timer = null;
+        build();
+        x.style.transition = "none";
+        place(sx, sy);
+        x.getBoundingClientRect();
+        x.style.transition = "";
+        const r = Math.hypot(Math.max(sx, innerWidth - sx), Math.max(sy, innerHeight - sy));
+        x.style.setProperty("--r", Math.ceil(r) + "px");
+        x.classList.add("open");
+        swallow = true;
+      };
+
+      const close = (px, py) => {
+        place(px, py);
+        x.classList.remove("open");
+      };
+
+      const cancel = () => {
+        clearTimeout(timer);
+        timer = null;
+      };
+
+      let closing = false;
+
+      addEventListener("pointerdown", (e) => {
+        swallow = false;
+        if (!e.isPrimary || e.button !== 0) return;
+        if (x.classList.contains("open")) {
+          closing = true;
+          return;
+        }
+        sx = e.clientX;
+        sy = e.clientY;
+        cancel();
+        timer = setTimeout(open, 1000);
+      });
+
+      addEventListener("pointermove", (e) => {
+        if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 12) cancel();
+      });
+
+      addEventListener("pointerup", (e) => {
+        cancel();
+        if (closing) {
+          closing = false;
+          close(e.clientX, e.clientY);
+          swallow = true;
+        }
+      });
+
+      addEventListener("pointercancel", () => {
+        cancel();
+        closing = false;
+      });
+
+      addEventListener("contextmenu", (e) => {
+        if (timer || x.classList.contains("open")) e.preventDefault();
+      });
+
+      addEventListener("click", (e) => {
+        if (swallow) {
+          swallow = false;
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+
+      addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && x.classList.contains("open")) close(innerWidth / 2, innerHeight / 2);
+      });
+    })();
+  </script>
 </body>
 </html>
